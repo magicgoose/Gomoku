@@ -5,10 +5,10 @@ import scala.collection.immutable.VectorBuilder
 import scala.annotation.tailrec
 import scala.util.Random
 
-trait Enumerable[@specialized(Int, Short) T] {
+trait Enumerable[@specialized T] {
   @inline def foreach(f: T => Unit)
   @inline def findIndex(f: T => Boolean): Int
-  @inline final def foldLeft[@specialized(Int) R](init: R)(fun: (R, T) => R) = {
+  @inline final def foldLeft[@specialized R](init: R)(fun: (R, T) => R) = {
     var r = init
     foreach(e => r = fun(r, e))
     r
@@ -16,7 +16,7 @@ trait Enumerable[@specialized(Int, Short) T] {
   @inline final def contains(f: T => Boolean) = {
     findIndex(f) != -1
   }
-  @inline final def maxBy(init: T)(fn: T => Int) = {
+  @inline final def maxBy(init: T)(fn: T => Int): T = {
     var m = Int.MinValue
     var r = init
     foreach(e => {
@@ -28,7 +28,7 @@ trait Enumerable[@specialized(Int, Short) T] {
     })
     r
   }
-  @inline final def maxMap(fn: T => Int) = {
+  @inline final def maxMap(fn: T => Int): Int = {
     var m = Int.MinValue
     foreach(e => {
       val f = fn(e)
@@ -39,7 +39,7 @@ trait Enumerable[@specialized(Int, Short) T] {
     m
   }
 }
-trait Indexed[@specialized(Int, Short) T] extends Enumerable[T] {
+trait Indexed[@specialized T] extends Enumerable[T] {
   @inline def length: Int
   @inline def apply(i: Int): T
   @inline def getRandom: T = apply(Random.nextInt(length))
@@ -62,7 +62,7 @@ trait Indexed[@specialized(Int, Short) T] extends Enumerable[T] {
 }
 
 
-final class ArraySlice[@specialized(Int, Short) T: ClassTag](private val begin: Int, private val end: Int, private val data: Array[T]) extends Indexed[T] {
+final class ArraySlice[@specialized T: ClassTag](private val begin: Int, private val end: Int, private val data: Array[T]) extends Indexed[T] {
   @inline final val length = end - begin
   @inline final def apply(i: Int) = { assert(i < length && i >= 0); data(i + begin) }
   @inline final def split(fun: T => Boolean) = {
@@ -87,12 +87,12 @@ final class ArraySlice[@specialized(Int, Short) T: ClassTag](private val begin: 
 }
 
 final object GrowableArray {
-  @inline final def create[@specialized(Int, Short) T: ClassTag](max_size: Int) = {
+  @inline final def create[@specialized T: ClassTag](max_size: Int) = {
     new GrowableArray(Array.ofDim[T](max_size))
   }
 }
 
-final class GrowableArray[@specialized(Int, Short) T: ClassTag] private (private val data: Array[T]) extends Indexed[T] {
+final class GrowableArray[@specialized T: ClassTag] private (private val data: Array[T]) extends Indexed[T] {
   private var _length = 0
   @inline final def length = _length
   @inline final def reset() {

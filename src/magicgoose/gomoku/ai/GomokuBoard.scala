@@ -164,17 +164,7 @@ class GomokuBoard private (
         assert((last_index - first_index) % 2 == 0)
         var l = first_index
         while (l <= (last_index - 2)) {
-          //          try {
           assert(unpack1(w(l + 1)) == 0)
-          //          } catch {
-          //            case _ => {
-          //              println("====")
-          //              w.foreach(t => {
-          //                println(s"(${unpack1(t)}, ${unpack2(t)})")
-          //              })
-          //              println("====")
-          //            }
-          //          }
           val closed_l = (l == 0)
           if (unpack2(w(l + 1)) == 1) {
             val closed = closed_l || (l + 2 == w.length - 1)

@@ -15,7 +15,7 @@ package object ai {
     r
   }
 
-  def array_tabulate[@specialized(Int) T: ClassTag](start: Int, end: Int, step: Int, fun: Int => T) = {
+  def array_tabulate[@specialized T: ClassTag](start: Int, end: Int, step: Int, fun: Int => T) = {
     val length = (end - start + (step - 1)) / step
     val r = Array.ofDim[T](length)
     var i = 0
