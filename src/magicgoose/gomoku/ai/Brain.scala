@@ -12,7 +12,7 @@ class StupidGomokuBrain(val board: GomokuBoard) extends GomokuBrain {
     findPossibleMoves.maxBy(0)(move_rating(player, _))
   }
 
-  private val tmpPossibleMoves = Array.fill(3)(GrowableArray.create[Int](board.total_size))
+  private val tmpPossibleMoves = Array.fill(4)(GrowableArray.create[Int](board.total_size))
   def findPossibleMoves = findPossibleMoves(0)
   def findPossibleMoves(layer: Int): magicgoose.gomoku.ai.Indexed[Int] = {
     tmpPossibleMoves(layer).reset()
@@ -41,13 +41,17 @@ class StupidGomokuBrain(val board: GomokuBoard) extends GomokuBrain {
   final val LOSS1 = LOSS + 1
   final val WIN2 = WIN - 2
 
-  def move_rating(player: Int, coord: Int, depth: Int = 0): Int = {
+  def move_rating(player: Int, coord: Int, depth: Int = 3): Int = { // TODO: add a/b cutoff to allow deeper search
     board.update_!(coord)(player)
     val result = if (depth == 0) {
       line_stats_rating(board.overall_line_info, player)
-    } else { // Something wrong here
-      val possible_moves = findPossibleMoves(depth)
-      -possible_moves.maxBy(0)(move_rating(-player, _, depth - 1))
+    } else {
+      val shortcut = line_stats_rating(board.overall_line_info, player)
+      if (shortcut == WIN || shortcut == LOSS) shortcut
+      else {
+        val possible_moves = findPossibleMoves(depth)
+        -possible_moves.maxMap(move_rating(-player, _, depth - 1))
+      }
     }
     board.update_!(coord)(0)
     result

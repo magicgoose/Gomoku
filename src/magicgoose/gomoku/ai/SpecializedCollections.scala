@@ -28,6 +28,16 @@ trait Enumerable[@specialized(Int, Short) T] {
     })
     r
   }
+  @inline final def maxMap(fn: T => Int) = {
+    var m = Int.MinValue
+    foreach(e => {
+      val f = fn(e)
+      if (f > m) {
+        m = f
+      }
+    })
+    m
+  }
 }
 trait Indexed[@specialized(Int, Short) T] extends Enumerable[T] {
   @inline def length: Int

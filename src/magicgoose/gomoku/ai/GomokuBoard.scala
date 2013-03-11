@@ -48,7 +48,7 @@ class GomokuBoard private (
   
   private var current_player = 1
   def update_!(coord: Int)(new_value: Int) = {
-    assert(new_value == 0 || (contents(coord) == 0 && new_value == current_player))
+    assert(new_value == 0 || (contents(coord) == 0 && new_value == current_player && overall_line_info.win == 0))
     contents(coord) = new_value
     current_player *= -1
     val crossing_lines = lines(coord)
