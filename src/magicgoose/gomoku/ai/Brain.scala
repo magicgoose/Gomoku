@@ -12,7 +12,7 @@ class AlmostNotStupidGomokuBrain(val board: GomokuBoard) extends GomokuBrain {
     findPossibleMoves.maxBy(0)(move_rating(player, _))
   }
 
-  private val max_depth = 3
+  private val max_depth = 2
   private val tmpPossibleMoves = Array.fill(max_depth + 1)(GrowableArray.create[Int](board.total_size))
   def findPossibleMoves = findPossibleMoves(0)
   def findPossibleMoves(layer: Int): magicgoose.gomoku.ai.Indexed[Int] = {
