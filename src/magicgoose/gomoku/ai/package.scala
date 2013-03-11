@@ -35,14 +35,14 @@ package object ai {
     }
   }
 
-  def pack(a: Byte, b: Byte): Short = {
-    ((a & 0xFF) | ((b & 0xFF) << 8)).toShort
+  def pack(a: Int, b: Int): Int = {
+    ((a.toShort & 0xFFFF) | ((b.toShort & 0xFFFF) << 16))
   }
-  def unpack1(x: Short): Byte = {
-    (x & 0xFF).toByte
+  def unpack1(x: Int): Int = {
+    (x & 0xFFFF).toShort
   }
-  def unpack2(x: Short): Byte = {
-    ((x & 0xFFFF) >> 8).toByte
+  def unpack2(x: Int): Int = {
+    x  >> 16
   }
 
 }

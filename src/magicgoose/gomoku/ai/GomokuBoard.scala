@@ -55,11 +55,9 @@ class GomokuBoard private (
     array_foreach(crossing_lines)(t => {
       val (line_info, line_indexes) = t
       overall_line_info -= line_info
-      //println(s"before: $line_info")
       line_info.reset()
       eval_line_stats(line_indexes, line_info)
       overall_line_info += line_info
-      //println(s"after: $line_info")
     })
   }
 
@@ -119,8 +117,8 @@ class GomokuBoard private (
     }
   }
 
-  private val rle_tmp = GrowableArray.create[Short](side_size)
-  private def eval_line_rle(line_indexes: Array[Int], result: GrowableArray[Short]) { // write line stats for player into array
+  private val rle_tmp = GrowableArray.create[Int](side_size)
+  private def eval_line_rle(line_indexes: Array[Int], result: GrowableArray[Int]) { // write line stats for player into array
     rle_tmp.reset()
     var i = 0
     var last_type = 42 // Neither -1, 0, 1
@@ -130,7 +128,7 @@ class GomokuBoard private (
 
       if (current != last_type) {
         if (last_type != 42) {
-          result.push(pack(last_type.toByte, last_count.toByte))
+          result.push(pack(last_type/*.toByte*/, last_count/*.toByte*/))
         }
         last_type = current
         last_count = 1
@@ -140,10 +138,10 @@ class GomokuBoard private (
 
       i += 1
     }
-    result.push(pack(last_type.toByte, last_count.toByte))
+    result.push(pack(last_type/*.toByte*/, last_count/*.toByte*/))
   }
 
-  private def search_patterns(player: Int, rle: GrowableArray[Short], result: LineInfo) = {
+  private def search_patterns(player: Int, rle: GrowableArray[Int], result: LineInfo) = {
     val write_offset = (1 - player) / 2 * LineInfo.sz / 2
     def commit(size: Int, broken: Boolean, closed: Boolean) {
       if (size > 1) {

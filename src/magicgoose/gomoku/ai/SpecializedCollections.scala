@@ -5,10 +5,10 @@ import scala.collection.immutable.VectorBuilder
 import scala.annotation.tailrec
 import scala.util.Random
 
-trait Enumerable[@specialized T] {
+trait Enumerable[@specialized(Int) T] {
   @inline def foreach(f: T => Unit)
   @inline def findIndex(f: T => Boolean): Int
-  @inline final def foldLeft[@specialized R](init: R)(fun: (R, T) => R) = {
+  @inline final def foldLeft[@specialized(Int) R](init: R)(fun: (R, T) => R) = {
     var r = init
     foreach(e => r = fun(r, e))
     r
@@ -39,7 +39,7 @@ trait Enumerable[@specialized T] {
     m
   }
 }
-trait Indexed[@specialized T] extends Enumerable[T] {
+trait Indexed[@specialized(Int) T] extends Enumerable[T] {
   @inline def length: Int
   @inline def apply(i: Int): T
   @inline def getRandom: T = apply(Random.nextInt(length))
@@ -62,37 +62,36 @@ trait Indexed[@specialized T] extends Enumerable[T] {
 }
 
 
-final class ArraySlice[@specialized T: ClassTag](private val begin: Int, private val end: Int, private val data: Array[T]) extends Indexed[T] {
+final class ArraySlice[@specialized(Int) T: ClassTag](private val begin: Int, private val end: Int, private val data: Array[T]) extends Indexed[T] {
   @inline final val length = end - begin
   @inline final def apply(i: Int) = { assert(i < length && i >= 0); data(i + begin) }
   @inline final def split(fun: T => Boolean) = {
-    val r = new VectorBuilder[ArraySlice[T]]
+    val r = GrowableArray.create[ArraySlice[T]](length)//new VectorBuilder[ArraySlice[T]]
     var begin = this.begin
     var caret = begin
     while (caret < this.end) {
       if (fun(data(caret))) {
         if (caret > begin) {
-          r += new ArraySlice(begin, caret, data)
+          r.push(new ArraySlice(begin, caret, data))
         }
         begin = caret + 1
       }
       caret += 1
     }
     if (caret > begin) {
-      r += new ArraySlice(begin, caret, data)
+      r.push(new ArraySlice(begin, caret, data))
     }
-
-    r.result
+    r
   }
 }
 
 final object GrowableArray {
-  @inline final def create[@specialized T: ClassTag](max_size: Int) = {
+  @inline final def create[@specialized(Int) T: ClassTag](max_size: Int) = {
     new GrowableArray(Array.ofDim[T](max_size))
   }
 }
 
-final class GrowableArray[@specialized T: ClassTag] private (private val data: Array[T]) extends Indexed[T] {
+final class GrowableArray[@specialized(Int) T: ClassTag] private (private val data: Array[T]) extends Indexed[T] {
   private var _length = 0
   @inline final def length = _length
   @inline final def reset() {

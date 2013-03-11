@@ -7,12 +7,13 @@ trait GomokuBrain {
   def findMove(player: Int): Int
 }
 
-class StupidGomokuBrain(val board: GomokuBoard) extends GomokuBrain {
+class AlmostNotStupidGomokuBrain(val board: GomokuBoard) extends GomokuBrain {
   def findMove(player: Int): Int = {
     findPossibleMoves.maxBy(0)(move_rating(player, _))
   }
 
-  private val tmpPossibleMoves = Array.fill(4)(GrowableArray.create[Int](board.total_size))
+  private val max_depth = 3
+  private val tmpPossibleMoves = Array.fill(max_depth + 1)(GrowableArray.create[Int](board.total_size))
   def findPossibleMoves = findPossibleMoves(0)
   def findPossibleMoves(layer: Int): magicgoose.gomoku.ai.Indexed[Int] = {
     tmpPossibleMoves(layer).reset()
@@ -41,7 +42,7 @@ class StupidGomokuBrain(val board: GomokuBoard) extends GomokuBrain {
   final val LOSS1 = LOSS + 1
   final val WIN2 = WIN - 2
 
-  def move_rating(player: Int, coord: Int, depth: Int = 3): Int = { // TODO: add a/b cutoff to allow deeper search
+  def move_rating(player: Int, coord: Int, depth: Int = max_depth): Int = { // TODO: add a/b cutoff to allow deeper search
     board.update_!(coord)(player)
     val result = if (depth == 0) {
       line_stats_rating(board.overall_line_info, player)

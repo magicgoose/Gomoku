@@ -8,7 +8,7 @@ import GomokuMainWindow._
 import javax.swing.JTextArea
 import magicgoose.gomoku.ai.LineInfo
 import javax.swing.JOptionPane
-import magicgoose.gomoku.ai.StupidGomokuBrain
+import magicgoose.gomoku.ai.AlmostNotStupidGomokuBrain
 object GomokuMainWindow {
 
   val size = 15
@@ -66,7 +66,7 @@ class GomokuMainWindow {
       moves = index :: moves
     }
 
-    val bot = new StupidGomokuBrain(ai_board)
+    val bot = new AlmostNotStupidGomokuBrain(ai_board)
 
     val board = new Board(cells, (index, cell) => {
       try {
