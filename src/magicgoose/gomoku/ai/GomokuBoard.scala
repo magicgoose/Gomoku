@@ -67,8 +67,8 @@ class GomokuBoard private (
     val x = i % side_size
     val y = i / side_size
     (for (
-        xx <- (0 max (x - 2)) to ((side_size - 2) min (x + 2));
-        yy <- (0 max (y - 2)) to ((side_size - 2) min (y + 2)))
+        xx <- (0 max (x - 2)) to ((side_size - 1) min (x + 2));
+        yy <- (0 max (y - 2)) to ((side_size - 1) min (y + 2)))
       yield (xx + side_size * yy)).toArray
   })
 

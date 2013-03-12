@@ -1,5 +1,6 @@
 package magicgoose.gomoku
 
+import java.util.Arrays
 package object ai {
   import scala.reflect.ClassTag
 

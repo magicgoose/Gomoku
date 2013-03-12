@@ -66,7 +66,7 @@ final class ArraySlice[@specialized(Int) T: ClassTag](private val begin: Int, pr
   @inline final val length = end - begin
   @inline final def apply(i: Int) = { assert(i < length && i >= 0); data(i + begin) }
   @inline final def split(fun: T => Boolean) = {
-    val r = GrowableArray.create[ArraySlice[T]](length)//new VectorBuilder[ArraySlice[T]]
+    val r = GrowableArray.create[ArraySlice[T]](length)
     var begin = this.begin
     var caret = begin
     while (caret < this.end) {

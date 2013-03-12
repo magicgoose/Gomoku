@@ -48,6 +48,7 @@ class GomokuMainWindow {
 
     val content = frmMain.getContentPane()
     content.setLayout(new BorderLayout(8, 8))
+    val time_label = new JLabel
     val info_label = new JTextArea
     info_label.setEditable(false)
     info_label.setFont(info_label.getFont().deriveFont(14f))
@@ -71,7 +72,9 @@ class GomokuMainWindow {
     val board = new Board(cells, (index, cell) => {
       try {
         makeMove(index)
+        val t1 = System.currentTimeMillis()
         makeMove(bot.findMove(player))
+        time_label.setText(s"Time spend thinking: ${System.currentTimeMillis() - t1}ms")
       } catch {
         case e: Throwable => {
           warn("Illegal move", format_exception(e))
@@ -113,7 +116,7 @@ class GomokuMainWindow {
     content.add(board_container, BorderLayout.CENTER)
     content.add(panel_box(
       button("Undo move", undo_move_pair),
-      info_label), BorderLayout.LINE_END)
+      info_label, time_label), BorderLayout.LINE_END)
 
     val menubar = menuBar(
       menu("Game",
@@ -124,12 +127,12 @@ class GomokuMainWindow {
         menuItemCheck("Show move numbers",
           checked = true,
           accel = "VK_F2",
-          action = Cell.setIndexesVisible))/*,
+          action = Cell.setIndexesVisible)) /*,
       menu("Help",
         menuItem("Show help",
           accel = "VK_F1"),
         menuItem("About Gomoku",
-          accel = "VK_F12"))*/)
+          accel = "VK_F12"))*/ )
     frmMain.setJMenuBar(menubar)
   }
 
