@@ -45,5 +45,4 @@ package object ai {
   def unpack2(x: Int): Int = {
     x  >> 16
   }
-
 }

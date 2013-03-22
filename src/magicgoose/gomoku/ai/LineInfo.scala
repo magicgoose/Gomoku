@@ -8,13 +8,26 @@ final object LineInfo {
   final val CLOSED = 1
   final val BROKEN = 2
 
-  final val weights = Array(
-      20, 2, 4, 1,
-      200, 20, 40, 10,
-      2000, 200, 400, 100,
-      -20, -2, -4, -1,
-      -200, -20, -40, -10,
-      -2000, -200, -400, -100)
+  final val weights = Array(Array(
+    20, 2, 4, 1,
+    200, 20, 40, 10,
+    2000, 200, 400, 100,
+    -40, -4, -8, -2,
+    -400, -40, -80, -20,
+    -4000, -400, -800, -200), Array(
+    -40, -4, -8, -2,
+    -400, -40, -80, -20,
+    -4000, -400, -800, -200,
+    20, 2, 4, 1,
+    200, 20, 40, 10,
+    2000, 200, 400, 100))
+
+  final val WIN = Int.MaxValue / 2
+  final val LOSS = -WIN
+  final val WIN1 = WIN - 4000
+  final val LOSS1 = LOSS + 4000
+  final val WIN2 = WIN1 - 4000
+  final val LOSS2 = LOSS1 + 4000
 }
 final class LineInfo() {
   final val patterns = Array.ofDim[Int](sz)

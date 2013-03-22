@@ -8,7 +8,7 @@ import GomokuMainWindow._
 import javax.swing.JTextArea
 import magicgoose.gomoku.ai.LineInfo
 import javax.swing.JOptionPane
-import magicgoose.gomoku.ai.AlmostNotStupidGomokuBrain
+import magicgoose.gomoku.ai.SimpleGomokuBrain
 object GomokuMainWindow {
 
   val size = 15
@@ -67,19 +67,29 @@ class GomokuMainWindow {
       moves = index :: moves
     }
 
-    val bot = new AlmostNotStupidGomokuBrain(ai_board)
+    val bot = new SimpleGomokuBrain(ai_board)
+
+    def checkWin() = {
+      val sc = ai_board.heur_score
+      if (math.abs(sc) == Int.MaxValue)
+        math.signum(sc)
+      else 0
+    }
 
     val board = new Board(cells, (index, cell) => {
-      try {
-        makeMove(index)
-        val t1 = System.currentTimeMillis()
-        makeMove(bot.findMove(player))
-        time_label.setText(s"Time spend thinking: ${System.currentTimeMillis() - t1}ms")
-      } catch {
-        case e: Throwable => {
-          warn("Illegal move", format_exception(e))
+      //try {
+        if (checkWin == 0)
+          makeMove(index)
+        if (checkWin == 0) {
+          val t1 = System.currentTimeMillis()
+          makeMove(bot.findMove(player))
+          time_label.setText(s"Time spend thinking: ${System.currentTimeMillis() - t1}ms")
         }
-      }
+//      } catch {
+//        case e: Throwable => {
+//          warn("Illegal move", format_exception(e))
+//        }
+//      }
     })
     move_ui_updater = Some(i => {
       board.content(i).setCellValue(player, move_number)

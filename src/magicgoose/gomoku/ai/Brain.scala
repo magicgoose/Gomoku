@@ -7,16 +7,15 @@ trait GomokuBrain {
   def findMove(player: Int): Int
 }
 
-class AlmostNotStupidGomokuBrain(val board: GomokuBoard) extends GomokuBrain {
+class SimpleGomokuBrain(val board: GomokuBoard) extends GomokuBrain {
   def findMove(player: Int): Int = {
-    findPossibleMoves.maxBy(0)(move_rating(player, _))
+    val move = nmab_m(3)
+    assert(0 <= move && move < board.total_size && board(move) == 0)
+    move
   }
 
-  private val max_depth = 2
-  private val tmpPossibleMoves = Array.fill(max_depth + 1)(GrowableArray.create[Int](board.total_size))
-  def findPossibleMoves = findPossibleMoves(0)
-  def findPossibleMoves(layer: Int) = {
-    tmpPossibleMoves(layer).reset()
+  def findPossibleMoves() = {
+    val possibleMoves = GrowableArray.create[Int](board.total_size)
 
     var cell = 0
     while (cell < board.total_size) {
@@ -28,47 +27,61 @@ class AlmostNotStupidGomokuBrain(val board: GomokuBoard) extends GomokuBrain {
         } else false
       }
       if (board(cell) == 0 && check(0)) {
-        tmpPossibleMoves(layer).push(cell)
+        possibleMoves.push(cell)
       }
       cell += 1
     }
-    assert(tmpPossibleMoves(layer).length > 0)
-    tmpPossibleMoves(layer)
+    assert(possibleMoves.length > 0)
+    possibleMoves
   }
-
-  final val WIN = Int.MaxValue
-  final val LOSS = -(WIN - 1)
-  final val WIN1 = WIN - 1
-  final val LOSS1 = LOSS + 1
-  final val WIN2 = WIN - 2
-
-  def move_rating(player: Int, coord: Int, depth: Int = max_depth): Int = { // TODO: add a/b cutoff to allow deeper search
-    board.update_!(coord)(player)
-    val result = if (depth == 0) {
-      line_stats_rating(board.overall_line_info, player)
-    } else {
-      val shortcut = line_stats_rating(board.overall_line_info, player)
-      if (shortcut == WIN || shortcut == LOSS) shortcut
-      else {
-        val possible_moves = findPossibleMoves(depth)
-        -possible_moves.maxMap(move_rating(-player, _, depth - 1))
+  
+  def test_move_heur(coord: Int) = {
+    board.update_!(coord)(board.current_player)
+    val res = board.heur_score()
+    board.update_!(coord)(0)
+    res
+  }
+  
+  def nmab_m(depth: Int, alpha: Int = -Int.MaxValue, b: Int = Int.MaxValue): Int = {
+    val moves = findPossibleMoves().sortBy(test_move_heur(_))
+    var bestmove = 0
+    var bestscore = alpha
+    @inline def loop(i: Int): Int = {
+      if (i < moves.length) {
+        val recursedscore: Int = -nmab(moves(i), depth, -b, -bestscore)
+        if (recursedscore > bestscore) {
+          bestscore = recursedscore
+          bestmove = moves(i)
+        }
+        if (bestscore >= b) {
+          bestmove
+        } else loop(i + 1)
+      } else bestmove
+    }
+    loop(0)
+  }
+  def nmab(coord: Int, depth: Int, alpha: Int = -Int.MaxValue, b: Int = Int.MaxValue): Int = {
+    board.update_!(coord)(board.current_player)
+    val heur = board.heur_score()
+    val result = if (math.abs(heur) >= LineInfo.WIN1 || depth == 0)
+      heur
+    else {
+      val moves = findPossibleMoves().sortBy(test_move_heur(_))
+      var bestscore = alpha
+      @inline def loop(i: Int): Int = {
+        if (i < moves.length) {
+          val recursedscore: Int = -nmab(moves(i), depth - 1, -b, -bestscore)
+          if (recursedscore > bestscore) {
+            bestscore = recursedscore
+          }
+          if (bestscore >= b) {
+            bestscore
+          } else loop(i + 1)
+        } else bestscore
       }
+      loop(0)
     }
     board.update_!(coord)(0)
     result
-  }
-  def line_stats_rating(li: LineInfo, player: Int) = { // stats for position with `ls` and last moved player `player` for `player`
-    import LineInfo._
-    if (li.win == player)
-      WIN
-    else if (li.win == -player || li(-player, 4) >= 1)
-      LOSS
-    else if (li(player, 4, OPEN) >= 1 || li(player, 4) >= 2)
-      WIN1
-    else if (li(-player, 3, OPEN) >= 1 || li(-player, 3, BROKEN) >= 1)
-      LOSS1
-    else if (li(player, 4) + li(player, 3, OPEN) >= 2)
-      WIN2
-    else player * dot(li.patterns, LineInfo.weights)
   }
 }

@@ -2,17 +2,16 @@ package magicgoose.gomoku.ai
 
 import java.util.Arrays
 
-import scala.Array.canBuildFrom
 import scala.language.implicitConversions
 
 class GomokuBoard private (
-  private val contents: Array[Int],
-  val side_size: Int,
-  val total_size: Int) {
+  private final val contents: Array[Int],
+  final val side_size: Int,
+  final val total_size: Int) {
 
   final val line_length = 5
 
-  private val lines = { // position -> line number -> (stats, line indexes)
+  private final val lines = { // position -> line number -> (stats, line indexes)
     val lines_- = {
       array_tabulate(0, side_size, 1, y =>
         Array.range(side_size * y, side_size * (y + 1), 1))
@@ -38,16 +37,17 @@ class GomokuBoard private (
       (all_lines.filter(_._2.contains(c)))
     })
   }
-  val overall_line_info = new LineInfo()
+  final val overall_line_info = new LineInfo()
 
-  def reset_!() {
+  final def reset_!() {
     lines.foreach(_.foreach(_._1.reset()))
     overall_line_info.reset()
     Arrays.fill(contents, 0)
+    current_player = 1
   }
-  
-  private var current_player = 1
-  def update_!(coord: Int)(new_value: Int) = {
+
+  var current_player = 1
+  final def update_!(coord: Int)(new_value: Int) = {
     assert(new_value == 0 || (contents(coord) == 0 && new_value == current_player && overall_line_info.win == 0))
     contents(coord) = new_value
     current_player *= -1
@@ -61,52 +61,19 @@ class GomokuBoard private (
     })
   }
 
-  def apply(coord: Int) = contents(coord)
-  
-  val neighbours2 = Array.tabulate(total_size)(i => {
+  @inline final def apply(coord: Int) = contents(coord)
+
+  final val neighbours2 = Array.tabulate(total_size)(i => {
     val x = i % side_size
     val y = i / side_size
     (for (
-        xx <- (0 max (x - 2)) to ((side_size - 1) min (x + 2));
-        yy <- (0 max (y - 2)) to ((side_size - 1) min (y + 2)))
-      yield (xx + side_size * yy)).toArray
+      xx <- (0 max (x - 2)) to ((side_size - 1) min (x + 2));
+      yy <- (0 max (y - 2)) to ((side_size - 1) min (y + 2))
+    ) yield (xx + side_size * yy)).toArray
   })
 
-  def canEqual(other: Any) = other.isInstanceOf[GomokuBoard]
-
-  override def equals(other: Any) = {
-    other match {
-      case b: GomokuBoard => {
-        b.canEqual(GomokuBoard.this) &&
-          b.side_size == side_size &&
-          Arrays.equals(b.contents, contents)
-      }
-      case _ => false
-    }
-  }
-  override def hashCode() =
-    Arrays.hashCode(contents)
-
-  //  val cell_formatter = (x: Int) => {
-  //    x match {
-  //      case 1 => "+"
-  //      case 0 => " "
-  //      case -1 => "-"
-  //    }
-  //  }
-  //  val hor_pad_length = side_size
-  //
-  //  override def toString() = {
-  //    val hor_pad = "─" * hor_pad_length
-  //    "┌" + hor_pad + "┐\n│" +
-  //      contents.iterator.sliding(side_size, side_size).map(_.map(cell_formatter).mkString).mkString("│\n│") +
-  //      "│\n└" + hor_pad + "┘\n"
-  //
-  //  }
-
   //Extra navigation functions
-
-  private def eval_line_stats(line_indexes: Array[Int], result: LineInfo) = {
+  private final def eval_line_stats(line_indexes: Array[Int], result: LineInfo) = {
     eval_line_rle(line_indexes, rle_tmp)
     val wini = rle_tmp.findIndex(chunk => unpack1(chunk) != 0 && unpack2(chunk) >= line_length)
     if (wini != -1) {
@@ -117,8 +84,8 @@ class GomokuBoard private (
     }
   }
 
-  private val rle_tmp = GrowableArray.create[Int](side_size)
-  private def eval_line_rle(line_indexes: Array[Int], result: GrowableArray[Int]) { // write line stats for player into array
+  private final val rle_tmp = GrowableArray.create[Int](side_size)
+  private final def eval_line_rle(line_indexes: Array[Int], result: GrowableArray[Int]) { // write line stats for player into array
     rle_tmp.reset()
     var i = 0
     var last_type = 42 // Neither -1, 0, 1
@@ -128,7 +95,7 @@ class GomokuBoard private (
 
       if (current != last_type) {
         if (last_type != 42) {
-          result.push(pack(last_type/*.toByte*/, last_count/*.toByte*/))
+          result.push(pack(last_type /*.toByte*/ , last_count /*.toByte*/ ))
         }
         last_type = current
         last_count = 1
@@ -138,10 +105,10 @@ class GomokuBoard private (
 
       i += 1
     }
-    result.push(pack(last_type/*.toByte*/, last_count/*.toByte*/))
+    result.push(pack(last_type /*.toByte*/ , last_count /*.toByte*/ ))
   }
 
-  private def search_patterns(player: Int, rle: GrowableArray[Int], result: LineInfo) = {
+  private final def search_patterns(player: Int, rle: GrowableArray[Int], result: LineInfo) = {
     val write_offset = (1 - player) / 2 * LineInfo.sz / 2
     def commit(size: Int, broken: Boolean, closed: Boolean) {
       if (size > 1) {
@@ -178,6 +145,29 @@ class GomokuBoard private (
     })
   }
 
+  def heur_score() = { // for current player
+    import LineInfo._
+    val threat_score =
+      if (overall_line_info.win == -current_player)
+        LOSS
+      else if (overall_line_info.win == current_player)
+        WIN
+      else if (overall_line_info(current_player, 4) >= 1)
+        WIN1
+      else if (overall_line_info(-current_player, 4, OPEN) >= 1 || overall_line_info(-current_player, 4) >= 2)
+        LOSS1
+      else if (overall_line_info(current_player, 3, OPEN) >= 1 || overall_line_info(current_player, 3, BROKEN) >= 1)
+        WIN2
+      else if (overall_line_info(-current_player, 4) + overall_line_info(-current_player, 3, OPEN) >= 2)
+        LOSS2
+      else 0
+    if (threat_score == WIN || threat_score == LOSS)
+      math.signum(threat_score) * Int.MaxValue
+    else {
+      val plain_score = -dot(overall_line_info.patterns, LineInfo.weights((current_player + 1) / 2))
+      threat_score + plain_score
+    }
+  }
 }
 
 object GomokuBoard {
@@ -186,3 +176,21 @@ object GomokuBoard {
     new GomokuBoard(Array.fill(total_size)(0), side_size, total_size)
   }
 }
+
+
+  //  val cell_formatter = (x: Int) => {
+  //    x match {
+  //      case 1 => "+"
+  //      case 0 => " "
+  //      case -1 => "-"
+  //    }
+  //  }
+  //  val hor_pad_length = side_size
+  //
+  //  override def toString() = {
+  //    val hor_pad = "─" * hor_pad_length
+  //    "┌" + hor_pad + "┐\n│" +
+  //      contents.iterator.sliding(side_size, side_size).map(_.map(cell_formatter).mkString).mkString("│\n│") +
+  //      "│\n└" + hor_pad + "┘\n"
+  //
+  //  }
