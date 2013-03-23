@@ -9,7 +9,7 @@ trait GomokuBrain {
 
 class SimpleGomokuBrain(val board: GomokuBoard) extends GomokuBrain {
   def findMove(player: Int): Int = {
-    val move = nmab_m(3)
+    val move = nmab_m(4)
     assert(0 <= move && move < board.total_size && board(move) == 0)
     move
   }
@@ -43,7 +43,7 @@ class SimpleGomokuBrain(val board: GomokuBoard) extends GomokuBrain {
   }
   
   def nmab_m(depth: Int, alpha: Int = -Int.MaxValue, b: Int = Int.MaxValue): Int = {
-    val moves = findPossibleMoves().sortBy(test_move_heur(_))
+    val moves = findPossibleMoves().sortBy(test_move_heur(_)).take(24)
     var bestmove = 0
     var bestscore = alpha
     @inline def loop(i: Int): Int = {
@@ -66,7 +66,7 @@ class SimpleGomokuBrain(val board: GomokuBoard) extends GomokuBrain {
     val result = if (math.abs(heur) >= LineInfo.WIN1 || depth == 0)
       heur
     else {
-      val moves = findPossibleMoves().sortBy(test_move_heur(_))
+      val moves = findPossibleMoves().sortBy(test_move_heur(_)).take(24)
       var bestscore = alpha
       @inline def loop(i: Int): Int = {
         if (i < moves.length) {
