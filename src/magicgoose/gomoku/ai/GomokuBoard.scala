@@ -3,14 +3,18 @@ package magicgoose.gomoku.ai
 import java.util.Arrays
 
 import scala.language.implicitConversions
-
+/**
+ * Class that incapsulates board state and AI-related variables and precalculated stuff
+ */
 class GomokuBoard private (
-  private final val contents: Array[Int],
-  final val side_size: Int,
-  final val total_size: Int) {
+  private final val contents: Array[Int], // the board
+  final val side_size: Int, // one dimensional size
+  final val total_size: Int // number of cells
+  ) {
 
   final val line_length = 5
 
+  // precalculated value, for every cell it contains all lines, represented by array of its indices and instance of LineInfo
   private final val lines = { // position -> line number -> (stats, line indexes)
     val lines_- = {
       array_tabulate(0, side_size, 1, y =>
@@ -37,8 +41,11 @@ class GomokuBoard private (
       (all_lines.filter(_._2.contains(c)))
     })
   }
+  
+  // summary of lines, directly used in evaluation function
   final val overall_line_info = new LineInfo()
 
+  // reset state to new game
   final def reset_!() {
     lines.foreach(_.foreach(_._1.reset()))
     overall_line_info.reset()
@@ -52,6 +59,7 @@ class GomokuBoard private (
     contents(coord) = new_value
     current_player *= -1
     val crossing_lines = lines(coord)
+    // update line info
     array_foreach(crossing_lines)(t => {
       val (line_info, line_indexes) = t
       overall_line_info -= line_info
@@ -63,6 +71,7 @@ class GomokuBoard private (
 
   @inline final def apply(coord: Int) = contents(coord)
 
+  // precalculated value, for each cell contains array of indexes of "close enough" cells
   final val neighbours2 = Array.tabulate(total_size)(i => {
     val x = i % side_size
     val y = i / side_size
@@ -72,30 +81,34 @@ class GomokuBoard private (
     ) yield (xx + side_size * yy)).toArray
   })
 
-  //Extra navigation functions
+
+  
   private final def eval_line_stats(line_indexes: Array[Int], result: LineInfo) = {
     eval_line_rle(line_indexes, rle_tmp)
+    
+    //check for win
     val wini = rle_tmp.findIndex(chunk => unpack1(chunk) != 0 && unpack2(chunk) >= line_length)
-    if (wini != -1) {
+    if (wini != -1) { // winning line has been found
       result.win = unpack1(rle_tmp(wini))
-    } else {
+    } else { // if nobody wins, do real analysis for both players 
       search_patterns(1, rle_tmp, result)
       search_patterns(-1, rle_tmp, result)
     }
   }
 
   private final val rle_tmp = GrowableArray.create[Int](side_size)
-  private final def eval_line_rle(line_indexes: Array[Int], result: GrowableArray[Int]) { // write line stats for player into array
-    rle_tmp.reset()
+  
+  // run-length encoding of line, stores result into "result"
+  private final def eval_line_rle(line_indexes: Array[Int], result: GrowableArray[Int]) {
     var i = 0
-    var last_type = 42 // Neither -1, 0, 1
+    var last_type = 42 // Neither -1, 0, 1 - needed for first step
     var last_count = 0
     while (i < line_indexes.length) {
       val current = contents(line_indexes(i))
 
       if (current != last_type) {
         if (last_type != 42) {
-          result.push(pack(last_type /*.toByte*/ , last_count /*.toByte*/ ))
+          result.push(pack(last_type, last_count))
         }
         last_type = current
         last_count = 1
@@ -105,12 +118,17 @@ class GomokuBoard private (
 
       i += 1
     }
-    result.push(pack(last_type /*.toByte*/ , last_count /*.toByte*/ ))
+    result.push(pack(last_type, last_count))
   }
 
+  /**
+   * sum line stats for the player from run-length encoded line
+   */
   private final def search_patterns(player: Int, rle: GrowableArray[Int], result: LineInfo) = {
+    // write at the beginning of in the middle, depending on the player
     val write_offset = (1 - player) / 2 * LineInfo.sz / 2
     def commit(size: Int, broken: Boolean, closed: Boolean) {
+      // adds 1 to the matching counter in result
       if (size > 1) {
         val rs = math.min(4, size)
         import scala.language.implicitConversions
@@ -121,9 +139,9 @@ class GomokuBoard private (
     }
     val windows = rle.getSlice.split(unpack1(_) == -player)
     windows.foreach(w => {
-      val size = w.foldLeft(0)((acc, e) => unpack2(e) + acc)
+      val size = w.foldLeft(0)((acc, e) => unpack2(e) + acc) // total length inside window
       if (size >= line_length) {
-
+        
         val first_index = if (unpack1(w(0)) == player) 0 else 1
         val last_index = if (unpack1(w(w.length - 1)) == player) w.length - 1 else w.length - 2
         assert((last_index - first_index) % 2 == 0)
@@ -145,7 +163,10 @@ class GomokuBoard private (
     })
   }
 
-  def heur_score() = { // for current player
+  /**
+   * heuristic score for current player
+   */
+  def heur_score() = { 
     import LineInfo._
     val threat_score =
       if (overall_line_info.win == -current_player)

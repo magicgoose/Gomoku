@@ -4,7 +4,10 @@ import scala.reflect.ClassTag
 import scala.annotation.tailrec
 import scala.util.Random
 import java.util.Arrays
-
+/*
+ * some "collections" for convenience
+ * Scala's are not good, because they cause primitive boxing
+ */
 trait Enumerable[@specialized(Int) T] {
   @inline def foreach(f: T => Unit)
   @inline def findIndex(f: T => Boolean): Int

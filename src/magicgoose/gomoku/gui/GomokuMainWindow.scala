@@ -82,7 +82,7 @@ class GomokuMainWindow {
           makeMove(index)
         if (checkWin == 0) {
           val t1 = System.currentTimeMillis()
-          makeMove(bot.findMove(player))
+          makeMove(bot.findMove())
           time_label.setText(s"Time spend thinking: ${System.currentTimeMillis() - t1}ms")
         }
 //      } catch {
