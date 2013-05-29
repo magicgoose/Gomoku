@@ -4,7 +4,9 @@ import scala.reflect.ClassTag
 import scala.annotation.tailrec
 import scala.util.Random
 import java.util.Arrays
-/*
+import magicgoose.sorting.QuickSort2
+import magicgoose.sorting.NaturalOrd
+/**
  * some "collections" for convenience
  * Scala's are not good, because they cause primitive boxing
  */
@@ -91,6 +93,12 @@ final object GrowableArray {
   @inline final def create[@specialized(Int) T: ClassTag](max_size: Int) = {
     new GrowableArray(Array.ofDim[T](max_size))
   }
+  @inline final def create1[@specialized(Int) T: ClassTag](elem: T) = {
+    //println(elem)
+    val r = new GrowableArray(Array(elem))
+    r._length = 1
+    r
+  }
 }
 
 final class GrowableArray[@specialized(Int) T: ClassTag] private (private val data: Array[T]) extends Indexed[T] {
@@ -107,10 +115,18 @@ final class GrowableArray[@specialized(Int) T: ClassTag] private (private val da
     data(length) = x
     _length += 1
   }
-  @inline final def sortBy(f: T => Int) = {
+  @inline final def sortByInplace(f: T => Int) = {
+    import NaturalOrd._
     val sortref = Array.tabulate(length)(i => f(data(i)))
-    data.zip(sortref).sortBy(_._2).unzip._1
+    QuickSort2.sortInPlace(data, sortref, 0, _length - 1)
+    this
   }
+  @inline final def trim(n: Int) = {
+    if (n < _length) _length = n
+    this
+  }
+  @inline final def head = data(0)
 
   @inline final def getSlice = new ArraySlice(0, length, data)
+
 }

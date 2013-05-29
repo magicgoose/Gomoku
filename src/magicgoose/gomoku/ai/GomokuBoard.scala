@@ -1,10 +1,11 @@
 package magicgoose.gomoku.ai
 
 import java.util.Arrays
-
 import scala.language.implicitConversions
+import scala.util.Random
+import scala.annotation.tailrec
 /**
- * Class that incapsulates board state and AI-related variables and precalculated stuff
+ * Class that encapsulates board state and AI-related variables and precalculated stuff
  */
 class GomokuBoard private (
   private final val contents: Array[Int], // the board
@@ -14,7 +15,45 @@ class GomokuBoard private (
 
   final val line_length = 5
 
-  // precalculated value, for every cell it contains all lines, represented by array of its indices and instance of LineInfo
+  @volatile var pieces = 0
+
+//  val hashSize = 1 << 20
+  //  def equalsArray(x: Array[Int]) = {
+  //    Arrays.equals(x, contents)
+  //  }
+  //  def copyTo(x: Array[Byte]) {
+  //    System.arraycopy(contents, 0, x, 0, total_size)
+  //  }
+//  class HashRecord {
+//    @volatile var hash: Long = Random.nextLong
+//    //    val board = Array.ofDim[Byte](total_size)
+//    @volatile var depth: Int = -1
+//    @volatile var score: Int = 0
+//  }
+//  val hashTable =
+//    Array.fill(hashSize)(new HashRecord)
+
+//  val cellHashes =
+//    Array.fill(total_size)(Array.fill(2)(
+//      Random.nextLong()))
+//  def cellHash(index: Int) = cellHashes(index)(contents(index) + 1)
+
+//  @volatile private var hash = 0L //cellHashes.iterator.map(_(1)).foldLeft(0L)(_ ^ _)
+//  @inline def getHash = hash
+
+  def clamp(n: Long, range: Int): Int = {
+    if (n >= 0) (n % range).toInt
+    else {
+      //      val trololo = -n / range + 1
+      clamp(n + Long.MaxValue / 2, range)
+    }
+  }
+
+//  def hashLookup() = {
+//    hashTable(clamp(hash, hashSize))
+//  }
+
+  // pre-calculated value, for every cell it contains all lines, represented by array of its indices and instance of LineInfo
   private final val lines = { // position -> line number -> (stats, line indexes)
     val lines_- = {
       array_tabulate(0, side_size, 1, y =>
@@ -41,7 +80,7 @@ class GomokuBoard private (
       (all_lines.filter(_._2.contains(c)))
     })
   }
-  
+
   // summary of lines, directly used in evaluation function
   final val overall_line_info = new LineInfo()
 
@@ -49,13 +88,20 @@ class GomokuBoard private (
   final def reset_!() {
     lines.foreach(_.foreach(_._1.reset()))
     overall_line_info.reset()
-    Arrays.fill(contents, 0)
+    Arrays.fill(contents, 0.toByte)
     current_player = 1
+//    hash = 0
+    pieces = 0
   }
 
-  var current_player = 1
+  @volatile var current_player = 1
   final def update_!(coord: Int)(new_value: Int) = {
-    assert(new_value == 0 || (contents(coord) == 0 && new_value == current_player && overall_line_info.win == 0))
+    val old_value = contents(coord)
+//    if (old_value != 0) hash ^= cellHashes(coord)((old_value + 1) / 2)
+    if (!(new_value == 0 || (old_value == 0 && new_value == current_player && winner() == 0))) {
+      throw new Error(s"$coord, $old_value, $new_value\n" +
+        s"${new_value == 0}, ${old_value == 0}, ${new_value == current_player}, ${winner()}")
+    }
     contents(coord) = new_value
     current_player *= -1
     val crossing_lines = lines(coord)
@@ -64,9 +110,14 @@ class GomokuBoard private (
       val (line_info, line_indexes) = t
       overall_line_info -= line_info
       line_info.reset()
-      eval_line_stats(line_indexes, line_info)
+      LineCounter.count_lines(line_indexes, contents, line_info)
       overall_line_info += line_info
     })
+    // update hash
+//    if (new_value != 0) hash ^= cellHashes(coord)((new_value + 1) / 2)
+    if (new_value == 0) pieces -= 1
+    else pieces += 1
+    assert(pieces >= 0)
   }
 
   @inline final def apply(coord: Int) = contents(coord)
@@ -77,117 +128,146 @@ class GomokuBoard private (
     val y = i / side_size
     (for (
       xx <- (0 max (x - 2)) to ((side_size - 1) min (x + 2));
-      yy <- (0 max (y - 2)) to ((side_size - 1) min (y + 2))
+      yy <- (0 max (y - 2)) to ((side_size - 1) min (y + 2));
+      dx = math.abs(x - xx);
+      dy = math.abs(y - yy);
+      if (dx == 0 || dy == 0 || dx == dy)
     ) yield (xx + side_size * yy)).toArray
   })
 
+  def winner() = {
+    import LineInfo._
+    val win1st = overall_line_info.win(1)
+    val win2nd = overall_line_info.win(-1)
 
-  
-  private final def eval_line_stats(line_indexes: Array[Int], result: LineInfo) = {
-    eval_line_rle(line_indexes, rle_tmp)
-    
-    //check for win
-    val wini = rle_tmp.findIndex(chunk => unpack1(chunk) != 0 && unpack2(chunk) >= line_length)
-    if (wini != -1) { // winning line has been found
-      result.win = unpack1(rle_tmp(wini))
-    } else { // if nobody wins, do real analysis for both players 
-      search_patterns(1, rle_tmp, result)
-      search_patterns(-1, rle_tmp, result)
-    }
+    assert(!(win1st && win2nd))
+
+    if (win1st) 1
+    else if (win2nd) -1
+    else 0
   }
 
-  private final val rle_tmp = GrowableArray.create[Int](side_size)
-  
-  // run-length encoding of line, stores result into "result"
-  private final def eval_line_rle(line_indexes: Array[Int], result: GrowableArray[Int]) {
-    var i = 0
-    var last_type = 42 // Neither -1, 0, 1 - needed for first step
-    var last_count = 0
-    while (i < line_indexes.length) {
-      val current = contents(line_indexes(i))
-
-      if (current != last_type) {
-        if (last_type != 42) {
-          result.push(pack(last_type, last_count))
-        }
-        last_type = current
-        last_count = 1
-      } else {
-        last_count += 1
-      }
-
-      i += 1
+  def checkNeighbours(cell: Int): Boolean = {
+    val neighbours = neighbours2(cell) // they are precomputed
+    @tailrec def loop(ni: Int = 0): Boolean = {
+      if (ni < neighbours.length) {
+        (this(neighbours(ni)) != 0) || loop(ni + 1)
+      } else false
     }
-    result.push(pack(last_type, last_count))
+    loop(0)
   }
 
-  /**
-   * sum line stats for the player from run-length encoded line
-   */
-  private final def search_patterns(player: Int, rle: GrowableArray[Int], result: LineInfo) = {
-    // write at the beginning of in the middle, depending on the player
-    val write_offset = (1 - player) / 2 * LineInfo.sz / 2
-    def commit(size: Int, broken: Boolean, closed: Boolean) {
-      // adds 1 to the matching counter in result
-      if (size > 1) {
-        val rs = math.min(4, size)
-        import scala.language.implicitConversions
-        @inline implicit def bool2int(b: Boolean) = if (b) 1 else 0
-        result.patterns(write_offset + (rs - 2) * 4 + closed + (broken * 2)) += 1
-      }
-
-    }
-    val windows = rle.getSlice.split(unpack1(_) == -player)
-    windows.foreach(w => {
-      val size = w.foldLeft(0)((acc, e) => unpack2(e) + acc) // total length inside window
-      if (size >= line_length) {
-        
-        val first_index = if (unpack1(w(0)) == player) 0 else 1
-        val last_index = if (unpack1(w(w.length - 1)) == player) w.length - 1 else w.length - 2
-        assert((last_index - first_index) % 2 == 0)
-        var l = first_index
-        while (l <= (last_index - 2)) {
-          assert(unpack1(w(l + 1)) == 0)
-          val closed_l = (l == 0)
-          if (unpack2(w(l + 1)) == 1) {
-            val closed = closed_l || (l + 2 == w.length - 1)
-            commit(unpack2(w(l)) + unpack2(w(l + 2)), true, closed)
-            l += (if ((l + 3) < last_index && unpack2(w(l + 3)) == 1) 2 else 4)
-          } else {
-            commit(unpack2(w(l)), false, closed_l)
-            l += 2
-          }
-        }
-        if (l == last_index) commit(unpack2(w(l)), false, l == w.length - 1 || l == 0)
-      }
-    })
-  }
+//  def winning4seq() = {
+//    val player = current_player
+//    val li = overall_line_info
+//    import LineInfo.{ OPEN, BROKEN }
+//
+//    assert(winner() == 0)
+//    
+//    val maxdepth = 3
+//    
+//    def attack(depth: Int): Boolean = {
+//      if (depth >= maxdepth || li(-player, 4) > 0 || winner() == -player) return false
+//      if (winner == player) return true
+//      var i = 0
+//      while (i < total_size) {
+//        if (this(i) == 0 && checkNeighbours(i)) {
+//          this.update_!(i)(player)
+//
+//          val result = {
+//            if (li(player, 4, OPEN) > 0) true
+//            else {
+//              if (li(player, 4) > 0) {
+//                defend(depth)
+//              } else false
+//            }
+//          }
+//
+//          this.update_!(i)(0)
+//          if (result) return true
+//        }
+//
+//        i += 1
+//      }
+//      false
+//    }
+//
+//    def defend(depth: Int): Boolean = {
+//      var i = 0
+//      while (i < total_size) {
+//        if (this(i) == 0 && checkNeighbours(i)) {
+//          this.update_!(i)(-player)
+//
+//          if (li(player, 4) == 0) {
+//            val r = attack(depth + 1)
+//            this.update_!(i)(0)
+//            return r
+//          } else {
+//
+//            this.update_!(i)(0)
+//          }
+//        }
+//
+//        i += 1
+//      }
+//      true
+//    }
+//
+//    val res = attack(0)
+////    if (res) {
+////      println(s"winning4seq (player $current_player):\n" +
+////        GomokuBoard.this)
+////    }
+//    res
+//  }
 
   /**
    * heuristic score for current player
    */
-  def heur_score() = { 
+  def heur_score() = {
     import LineInfo._
-    val threat_score =
-      if (overall_line_info.win == -current_player)
-        LOSS
-      else if (overall_line_info.win == current_player)
-        WIN
-      else if (overall_line_info(current_player, 4) >= 1)
-        WIN1
-      else if (overall_line_info(-current_player, 4, OPEN) >= 1 || overall_line_info(-current_player, 4) >= 2)
-        LOSS1
-      else if (overall_line_info(current_player, 3, OPEN) >= 1 || overall_line_info(current_player, 3, BROKEN) >= 1)
-        WIN2
-      else if (overall_line_info(-current_player, 4) + overall_line_info(-current_player, 3, OPEN) >= 2)
-        LOSS2
-      else 0
-    if (threat_score == WIN || threat_score == LOSS)
-      math.signum(threat_score) * Int.MaxValue
+    val win = winner()
+
+    if (win != 0) (win * Int.MaxValue) // + plain_score
     else {
-      val plain_score = -dot(overall_line_info.patterns, LineInfo.weights((current_player + 1) / 2))
-      threat_score + plain_score
+      val li = overall_line_info
+      val threat_score =
+        if (li(current_player, 4) >= 1)
+          WIN1
+        else if (li(-current_player, 4, OPEN) >= 1 || li(-current_player, 4) >= 2)
+          LOSS1
+        else if (li(current_player, 3, OPEN) >= 1 || li(current_player, 3, BROKEN) >= 1 /*|| winning4seq()*/)
+          WIN2
+        else if (li(-current_player, 4) + li(-current_player, 3, OPEN) >= 2)
+          LOSS2
+        else 0
+      if (threat_score != 0)
+        threat_score
+      else
+        -dot(overall_line_info.patterns, LineInfo.weights((current_player + 1) / 2))
     }
+  }
+
+  @inline final def withMove(coord: Int)(fun: () => Boolean): Boolean = {
+    update_!(coord)(current_player)
+    val r = fun()
+    update_!(coord)(0)
+    r
+  }
+
+  override def toString() = {
+    val cell_formatter = (x: Int) => {
+      x match {
+        case 1 => "X"
+        case 0 => " "
+        case -1 => "O"
+      }
+    }
+    val hor_pad = "─" * side_size
+    "┌" + hor_pad + "┐\n│" +
+      contents.iterator.sliding(side_size, side_size).map(_.map(cell_formatter).mkString).mkString("│\n│") +
+      "│\n└" + hor_pad + "┘\n"
+
   }
 }
 
@@ -196,22 +276,42 @@ object GomokuBoard {
     val total_size = side_size * side_size
     new GomokuBoard(Array.fill(total_size)(0), side_size, total_size)
   }
+  def fromString(s: String) = {
+    val stripped = s.split("\n").toSeq.tail.init.flatMap(x => x.toSeq.tail.init.map({
+      case 'X' => 1
+      case 'O' => -1
+      case ' ' => 0
+    }))
+    val sz = perfectSquareRoot(stripped.length)
+    if (sz <= 0) null
+    else {
+      val board = empty(sz)
+
+      val pieces = stripped.zipWithIndex.filter(_._1 != 0)
+      val pieces1 = pieces.iterator.filter(_._1 == 1).toList
+      val pieces2 = pieces.iterator.filter(_._1 == -1).toList
+      assert(Set(0, 1).contains(pieces1.length - pieces2.length))
+
+      def fill(p1: List[(Int, Int)], p2: List[(Int, Int)]) {
+        p1 match {
+          case (t1, i1) :: p1s => {
+            board.update_!(i1)(t1)
+            p2 match {
+              case (t2, i2) :: p2s => {
+                board.update_!(i2)(t2)
+                fill(p1s, p2s)
+              }
+              case _ =>
+            }
+          }
+          case _ =>
+        }
+      }
+
+      fill(pieces1, pieces2)
+
+      board
+    }
+
+  }
 }
-
-
-  //  val cell_formatter = (x: Int) => {
-  //    x match {
-  //      case 1 => "+"
-  //      case 0 => " "
-  //      case -1 => "-"
-  //    }
-  //  }
-  //  val hor_pad_length = side_size
-  //
-  //  override def toString() = {
-  //    val hor_pad = "─" * hor_pad_length
-  //    "┌" + hor_pad + "┐\n│" +
-  //      contents.iterator.sliding(side_size, side_size).map(_.map(cell_formatter).mkString).mkString("│\n│") +
-  //      "│\n└" + hor_pad + "┘\n"
-  //
-  //  }

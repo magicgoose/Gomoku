@@ -1,15 +1,10 @@
 package magicgoose.gomoku
 
+import java.io.FilenameFilter
+import java.io.File
+import javax.swing.filechooser.FileFilter
 package object gui {
-  def perfectSquareRoot(n: Int) = {
-    val h = n & 0xF
-    var t = 0
-    if (!(h > 9) && (h != 2 && h != 3 && h != 5 && h != 6 && h != 7 && h != 8) && {
-      t = math.floor(Math.sqrt(n.toDouble) + 0.5).toInt
-      t * t == n
-    }) t
-    else -1
-  }
+
   def foreach_i[@specialized(Int, Long) T](x: Array[T])(fun: (Int, T) => Unit) {
     var i = 0
     while (i < x.length) {
@@ -27,5 +22,25 @@ package object gui {
           .startsWith("magicgoose"))
         .getOrElse(e.getStackTraceString) +
         format_exception(e.getCause())
+  }
+
+  implicit def fun2filenamefilter(x: (File => Boolean, String)) = {
+    val (fun, descr) = x
+    new FileFilter {
+      override def accept(file: File) = {
+        fun(file)
+      }
+      override def getDescription = descr
+    }
+  }
+
+  def slurp(filename: String): String = { //obtain content of small text file
+    var source: scala.io.BufferedSource = null
+    try {
+      source = scala.io.Source.fromFile(filename)
+      source.mkString
+    } finally {
+      if (source != null) source.close()
+    }
   }
 }
