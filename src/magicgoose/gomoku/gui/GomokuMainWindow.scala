@@ -234,7 +234,7 @@ class GomokuMainWindow {
 
     content.add(board_container, BorderLayout.CENTER)
     content.add(panel_box(
-      intSlider(name = "AI strength", value = 5, min = 1, max = 6, handler = change_strength),
+      intSlider(name = "AI strength", value = 4, min = 1, max = 6, handler = change_strength),
       button("Undo move", undo_move),
       button("Force computer move & Switch side", switch_side),
       button("Load position", load_position),

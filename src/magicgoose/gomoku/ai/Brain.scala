@@ -143,15 +143,15 @@ class MoveSearcher(val board: GomokuBoard) {
    * negamax a/b search, returns best score
    */
   def search_score(coord: Int, depth: Int, alpha: Int, b: Int): Int = {
-//    def threats4(p: Int) =
-//      board.overall_line_info(p, 4)
+    def threats4(p: Int) =
+      board.overall_line_info(p, 4)
 
     //    def threats3(p: Int) =
     //      board.overall_line_info(p, 3, LineInfo.OPEN) +
     //        board.overall_line_info(p, 3, LineInfo.BROKEN)
 
-//    val player = board.current_player
-//    val threats4_before = threats4(player)
+    val player = board.current_player
+    val threats4_before = threats4(player)
     //    val threats3_before = threats3(player)
     assert(board(coord) == 0)
 
@@ -167,7 +167,9 @@ class MoveSearcher(val board: GomokuBoard) {
         if (math.abs(heur) >= LineInfo.WIN1 || depth <= 0)
           heur
         else {
-          val next_depth = depth - 1
+          val next_depth =
+            if (threats4(player) > threats4_before) depth
+            else depth - 1
 
           val moves = findPossibleMoves().sortByInplace(test_move_heur) //.trim(4)
           if (moves.length == 0) {
