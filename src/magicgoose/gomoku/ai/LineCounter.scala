@@ -37,7 +37,7 @@ object LineCounter {
               space_before = true
             } else {
               if (broken) {
-                add(count_l + count_r, true, space_before)
+                add(count_l, count_r, true, space_before)
                 space_before = true
                 last_broken = true
                 if (n == 1) {
@@ -51,7 +51,7 @@ object LineCounter {
                 if (n == 1) {
                   broken = true
                 } else { // more than 1 spaces and there is single line segment on the left
-                  add(count_l, false, space_before)
+                  add(count_l, 0, false, space_before)
 
                   space_before = true
                   count_l = 0
@@ -64,18 +64,21 @@ object LineCounter {
 
           def finish() = {
             if (count_l > 0 && !last_broken) {
-              add(count_l + count_r, broken && (count_r > 0), space_before && last_space)
+              add(count_l, count_r, broken && (count_r > 0), space_before && last_space)
             }
           }
 
-          def add(count: Int, broken: Boolean, open: Boolean) = {
-            if (count >= 2) {
-              var offset = 0
-              if (count <= 5) {
+          def add(count_l: Int, count_r: Int, broken: Boolean, open: Boolean) = {
+            val sum = count_l + count_r
+            if (sum >= 2) {
+              if (count_l >= 5 || count_r >= 5)
+                addResult.inc(player, 5, 0)
+              else {
+                var offset = 0
                 if (broken) offset += BROKEN
                 if (!open) offset += CLOSED
+                addResult.inc(player, math.min(targetLength, sum), offset)
               }
-              addResult.inc(player, math.min(targetLength, count), offset)
             }
           }
 
