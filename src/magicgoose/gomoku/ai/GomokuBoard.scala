@@ -175,9 +175,12 @@ class GomokuBoard private (
       val threat_score =
         if (li(current_player, 4) >= 1)
           WIN1
-        else if (li(-current_player, 4, OPEN) >= 1 || li(-current_player, 4) >= 1 && 
-            li(-current_player, 3, OPEN) + 
-            li(-current_player, 3, BROKEN) >= 1)
+        else if (li(-current_player, 4, OPEN) >= 1 
+//            || li(-current_player, 4) >= 1
+//            && 
+//            li(-current_player, 3, OPEN) + 
+//            li(-current_player, 3, BROKEN) >= 1
+            )
           LOSS1
 //        else if (li(current_player, 3, OPEN) +
 //          li(current_player, 3, BROKEN) >= 1)

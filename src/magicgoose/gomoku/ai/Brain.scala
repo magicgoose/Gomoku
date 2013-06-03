@@ -119,7 +119,7 @@ class MoveSearcher(val board: GomokuBoard) {
     if (moves.length == 0) throw new Error("This should not happen! No available moves.")
     moves.sortByInplace(test_move_heur)
     if (board.pieces == 1) moves.trim(2)
-    if (moves.head <= -LineInfo.WIN1) moves.head
+    if (moves.head <= -LineInfo.WIN) moves.head
     else {
       var bestmove = 0
       var bestscore = alpha
