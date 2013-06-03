@@ -17,44 +17,38 @@ class GomokuBoard private (
 
   @volatile var pieces = 0
 
-//  val hashSize = 1 << 20
-  //  def equalsArray(x: Array[Int]) = {
-  //    Arrays.equals(x, contents)
-  //  }
-  //  def copyTo(x: Array[Byte]) {
-  //    System.arraycopy(contents, 0, x, 0, total_size)
-  //  }
-//  class HashRecord {
-//    @volatile var hash: Long = Random.nextLong
-//    //    val board = Array.ofDim[Byte](total_size)
-//    @volatile var depth: Int = -1
-//    @volatile var score: Int = 0
-//  }
-//  val hashTable =
-//    Array.fill(hashSize)(new HashRecord)
+  val hashSize = 1 << 20
+  class HashRecord {
+    @volatile var hash: Long = Random.nextLong
+    @volatile var depth: Int = -1
+    @volatile var score: Int = 0
+  }
+  val hashTable =
+    Array.fill(hashSize)(new HashRecord)
 
-//  val cellHashes =
-//    Array.fill(total_size)(Array.fill(2)(
-//      Random.nextLong()))
-//  def cellHash(index: Int) = cellHashes(index)(contents(index) + 1)
+  val cellHashes =
+    Array.fill(total_size)(Array.fill(2)(
+      Random.nextLong()))
+  def cellHash(index: Int) = cellHashes(index)(contents(index) + 1)
 
-//  @volatile private var hash = 0L //cellHashes.iterator.map(_(1)).foldLeft(0L)(_ ^ _)
-//  @inline def getHash = hash
+  @volatile private var hash = 0L
+  @inline def getHash = hash
 
   def clamp(n: Long, range: Int): Int = {
     if (n >= 0) (n % range).toInt
     else {
-      //      val trololo = -n / range + 1
       clamp(n + Long.MaxValue / 2, range)
     }
   }
 
-//  def hashLookup() = {
-//    hashTable(clamp(hash, hashSize))
-//  }
+  def hashLookup() = {
+    hashTable(clamp(hash, hashSize))
+  }
 
-  // pre-calculated value, for every cell it contains all lines, represented by array of its indices and instance of LineInfo
-  private final val lines = { // position -> line number -> (stats, line indexes)
+  // pre-calculated value, for every cell it contains all lines,
+  // represented by array of its indices and instance of LineInfo
+  private final val lines = { // position -> line number ->
+    //(stats, line indexes)
     val lines_- = {
       array_tabulate(0, side_size, 1, y =>
         Array.range(side_size * y, side_size * (y + 1), 1))
@@ -64,24 +58,33 @@ class GomokuBoard private (
         Array.range(x, x + total_size, side_size))
     }
     val lines_/ = {
-      array_tabulate(line_length - 1, 2 * side_size - line_length, 1, slice => {
-        val bound = math.max(0, slice - side_size + 1)
-        Array.range(slice + (side_size - 1) * bound, bound + side_size * (slice - bound + 1) - 1, side_size - 1)
-      })
+      array_tabulate(
+        line_length - 1, 2 * side_size - line_length, 1, slice => {
+          val bound = math.max(0, slice - side_size + 1)
+          Array.range(
+            slice + (side_size - 1) * bound,
+            bound + side_size * (slice - bound + 1) - 1,
+            side_size - 1)
+        })
     }
     val lines_\ = {
-      array_tabulate(line_length - 1, 2 * side_size - line_length, 1, slice => {
-        val bound = math.max(0, slice - side_size + 1)
-        Array.range(bound + side_size * (side_size - 1 - slice + bound), slice - bound + side_size * (side_size - bound) + 1, 1 + side_size)
-      })
+      array_tabulate(
+        line_length - 1, 2 * side_size - line_length, 1, slice => {
+          val bound = math.max(0, slice - side_size + 1)
+          Array.range(
+            bound + side_size * (side_size - 1 - slice + bound),
+            slice - bound + side_size * (side_size - bound) + 1,
+            1 + side_size)
+        })
     }
-    val all_lines = Array.concat(lines_-, lines_|, lines_/, lines_\).map(l => (new LineInfo(), l))
+    val all_lines = Array.concat(lines_-, lines_|, lines_/, lines_\)
+      .map(l => (new LineInfo(), l))
     Array.tabulate(total_size)(c => {
       (all_lines.filter(_._2.contains(c)))
     })
   }
 
-  // summary of lines, directly used in evaluation function
+  // summary of lines, used in evaluation function
   final val overall_line_info = new LineInfo()
 
   // reset state to new game
@@ -90,17 +93,19 @@ class GomokuBoard private (
     overall_line_info.reset()
     Arrays.fill(contents, 0.toByte)
     current_player = 1
-//    hash = 0
+    hash = 0
     pieces = 0
   }
 
   @volatile var current_player = 1
   final def update_!(coord: Int)(new_value: Int) = {
     val old_value = contents(coord)
-//    if (old_value != 0) hash ^= cellHashes(coord)((old_value + 1) / 2)
-    if (!(new_value == 0 || (old_value == 0 && new_value == current_player && winner() == 0))) {
+    if (old_value != 0) hash ^= cellHashes(coord)((old_value + 1) / 2)
+    if (!(new_value == 0 ||
+      (old_value == 0 && new_value == current_player && winner() == 0))) {
       throw new Error(s"$coord, $old_value, $new_value\n" +
-        s"${new_value == 0}, ${old_value == 0}, ${new_value == current_player}, ${winner()}")
+        s"${new_value == 0}, ${old_value == 0}," +
+        s" ${new_value == current_player}, ${winner()}")
     }
     contents(coord) = new_value
     current_player *= -1
@@ -114,7 +119,7 @@ class GomokuBoard private (
       overall_line_info += line_info
     })
     // update hash
-//    if (new_value != 0) hash ^= cellHashes(coord)((new_value + 1) / 2)
+    if (new_value != 0) hash ^= cellHashes(coord)((new_value + 1) / 2)
     if (new_value == 0) pieces -= 1
     else pieces += 1
     assert(pieces >= 0)
@@ -122,7 +127,7 @@ class GomokuBoard private (
 
   @inline final def apply(coord: Int) = contents(coord)
 
-  // precalculated value, for each cell contains array of indexes of "close enough" cells
+  // for each cell contains array of indexes of "close enough" cells
   final val neighbours2 = Array.tabulate(total_size)(i => {
     val x = i % side_size
     val y = i / side_size
@@ -157,70 +162,6 @@ class GomokuBoard private (
     loop(0)
   }
 
-//  def winning4seq() = {
-//    val player = current_player
-//    val li = overall_line_info
-//    import LineInfo.{ OPEN, BROKEN }
-//
-//    assert(winner() == 0)
-//    
-//    val maxdepth = 3
-//    
-//    def attack(depth: Int): Boolean = {
-//      if (depth >= maxdepth || li(-player, 4) > 0 || winner() == -player) return false
-//      if (winner == player) return true
-//      var i = 0
-//      while (i < total_size) {
-//        if (this(i) == 0 && checkNeighbours(i)) {
-//          this.update_!(i)(player)
-//
-//          val result = {
-//            if (li(player, 4, OPEN) > 0) true
-//            else {
-//              if (li(player, 4) > 0) {
-//                defend(depth)
-//              } else false
-//            }
-//          }
-//
-//          this.update_!(i)(0)
-//          if (result) return true
-//        }
-//
-//        i += 1
-//      }
-//      false
-//    }
-//
-//    def defend(depth: Int): Boolean = {
-//      var i = 0
-//      while (i < total_size) {
-//        if (this(i) == 0 && checkNeighbours(i)) {
-//          this.update_!(i)(-player)
-//
-//          if (li(player, 4) == 0) {
-//            val r = attack(depth + 1)
-//            this.update_!(i)(0)
-//            return r
-//          } else {
-//
-//            this.update_!(i)(0)
-//          }
-//        }
-//
-//        i += 1
-//      }
-//      true
-//    }
-//
-//    val res = attack(0)
-////    if (res) {
-////      println(s"winning4seq (player $current_player):\n" +
-////        GomokuBoard.this)
-////    }
-//    res
-//  }
-
   /**
    * heuristic score for current player
    */
@@ -234,17 +175,22 @@ class GomokuBoard private (
       val threat_score =
         if (li(current_player, 4) >= 1)
           WIN1
-        else if (li(-current_player, 4, OPEN) >= 1 || li(-current_player, 4) >= 2)
+        else if (li(-current_player, 4, OPEN) >= 1 || li(-current_player, 4) >= 1 && 
+            li(-current_player, 3, OPEN) + 
+            li(-current_player, 3, BROKEN) >= 1)
           LOSS1
-        else if (li(current_player, 3, OPEN) >= 1 || li(current_player, 3, BROKEN) >= 1 /*|| winning4seq()*/)
-          WIN2
-        else if (li(-current_player, 4) + li(-current_player, 3, OPEN) >= 2)
+//        else if (li(current_player, 3, OPEN) +
+//          li(current_player, 3, BROKEN) >= 1)
+//          WIN2
+        else if (li(-current_player, 4) + li(-current_player, 3, OPEN) + li(-current_player, 3, BROKEN) >= 2)
           LOSS2
         else 0
       if (threat_score != 0)
         threat_score
       else
-        -dot(overall_line_info.patterns, LineInfo.weights((current_player + 1) / 2))
+        -dot(
+          overall_line_info.patterns,
+          LineInfo.weights((current_player + 1) / 2))
     }
   }
 

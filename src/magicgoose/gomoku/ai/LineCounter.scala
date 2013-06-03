@@ -4,7 +4,7 @@ object LineCounter {
 
   def count_lines(row_ref: Array[Int], data: Array[Int], addResult: LineInfo): Unit = {
     import LineInfo._
-    
+
     assert(row_ref.length >= targetLength)
     def count_for_player(player: Int): Unit = {
       def count_in_window(begin: Int, end: Int): Unit = {
@@ -71,8 +71,10 @@ object LineCounter {
           def add(count: Int, broken: Boolean, open: Boolean) = {
             if (count >= 2) {
               var offset = 0
-              if (broken) offset += BROKEN
-              if (!open) offset += CLOSED
+              if (count <= 5) {
+                if (broken) offset += BROKEN
+                if (!open) offset += CLOSED
+              }
               addResult.inc(player, math.min(targetLength, count), offset)
             }
           }
@@ -81,7 +83,7 @@ object LineCounter {
           var v = data(row_ref(begin))
           var count = 1
           while (i < end) {
-            val t = data(row_ref(i)) 
+            val t = data(row_ref(i))
             if (t != v) {
               proc(v, count)
               v = t

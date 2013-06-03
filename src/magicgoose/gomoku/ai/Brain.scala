@@ -18,7 +18,7 @@ import java.util.Arrays
 //}
 
 class MoveSearcher(val board: GomokuBoard) {
-  val max_depth = 5
+  @volatile var max_depth = 5
 
   def findMove(): Int = {
     if (board.pieces > 0) { // if not first move
@@ -31,15 +31,6 @@ class MoveSearcher(val board: GomokuBoard) {
       board.total_size / 2
     }
   }
-
-//  final val side = board.side_size
-//  @inline final def distance(c1: Int, c2: Int): Int = {
-//    val y1 = c1 / side
-//    val x1 = c1 % side
-//    val y2 = c2 / side
-//    val x2 = c2 % side
-//    math.abs(x2 - x1) + math.abs(y2 - y1)
-//  }
   
   def findPossibleMoves(): GrowableArray[Int] = {
     import LineInfo._
@@ -76,9 +67,9 @@ class MoveSearcher(val board: GomokuBoard) {
             cell += 1
           }
         }
-
+//        if (li(player, 3, ))
         val th3 = li(-player, 3, OPEN) + li(-player, 3, BROKEN)
-        if (th3 > 0) {
+        if (li(player, 3) == 0 && th3 > 0) {
           board.withMove(_)(() => {
             li(-player, 3, OPEN) + li(-player, 3, BROKEN) < th3
           })
@@ -105,10 +96,6 @@ class MoveSearcher(val board: GomokuBoard) {
    * simple score, with hash lookup
    */
   def getSimpleScore() = {
-//    val he = board.hashLookup()
-//    if (he.hash == board.getHash && he.depth >= 0) {
-//      he.score
-//    } else
       board.heur_score()
   }
 
@@ -170,30 +157,22 @@ class MoveSearcher(val board: GomokuBoard) {
 
     board.update_!(coord)(board.current_player)
 
-//    val he = board.hashLookup()
+    val he = board.hashLookup()
     val result =
-//      if (he.hash == board.getHash && he.depth == depth) {
-//        //        println("score found in table")
-//        //        if (!board.equalsArray(he.board))
-//        //          println("collision")
-//        he.score
-//      } else
+      if (he.hash == board.getHash && he.depth == depth) {
+        he.score
+      } else
       {
         val heur = board.heur_score()
         if (math.abs(heur) >= LineInfo.WIN1 || depth <= 0)
           heur
         else {
-          val next_depth =
-//            if (threats4(player) > threats4_before)
-//              depth
-//            else
-              depth - 1
+          val next_depth = depth - 1
 
           val moves = findPossibleMoves().sortByInplace(test_move_heur) //.trim(4)
           if (moves.length == 0) {
             board.update_!(coord)(0)
-            //println("no moves:\n" + board)
-            return Int.MaxValue //-
+            return Int.MaxValue
           }
           var bestscore = alpha
           @inline def loop(i: Int): Int = {
@@ -204,15 +183,13 @@ class MoveSearcher(val board: GomokuBoard) {
               }
               if (bestscore >= b) {
                 bestscore
-                //b
               } else loop(i + 1)
             } else bestscore
           }
           val r = loop(0)
-//          he.hash = board.getHash
-//          he.depth = depth
-//          he.score = r
-          //          board.copyTo(he.board)
+          he.hash = board.getHash
+          he.depth = depth
+          he.score = r
           r
         }
       }

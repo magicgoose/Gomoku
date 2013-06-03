@@ -32,7 +32,7 @@ final object LineInfo {
   final val step = 100000
 
   final val WIN = Int.MaxValue / 2
-  final val LOSS = (-WIN * 0.75).toInt
+  final val LOSS = (-WIN).toInt
   final val WIN1 = WIN / 2
   final val LOSS1 = LOSS / 2
   final val WIN2 = WIN1 / 2
@@ -67,7 +67,7 @@ final class LineInfo() {
   }
   
   @inline final def win(player: Int) =
-    this(player, 5, OPEN) > 0 || this(player, 5, CLOSED) > 0
+    this(player, 5, 0) + this(player, 5, 1) > 0
 
   final def +=(rhs: LineInfo) {
     var i = 0

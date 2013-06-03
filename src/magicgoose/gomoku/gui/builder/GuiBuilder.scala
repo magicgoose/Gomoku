@@ -14,6 +14,10 @@ import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.BoxLayout
+import javax.swing.JSlider
+import javax.swing.event.ChangeListener
+import javax.swing.event.ChangeEvent
+import javax.swing.JLabel
 
 object GuiBuilder {
   def menuBar(items: JMenu*): JMenuBar = {
@@ -58,6 +62,26 @@ object GuiBuilder {
     r
   }
 
+  def intSlider(name: String, value: Int, min: Int, max: Int, handler: Int => Unit) = {
+    def caption(x:Int)=name+": "+x+" "
+    val l = new JLabel(caption(value))
+    val s = new JSlider
+    s.setMaximum(max)
+    s.setMinimum(min)
+    s.setValue(value)
+    s.setMajorTickSpacing(1)
+    s.setSnapToTicks(true)
+    s.setPaintTicks(true)
+    s.addChangeListener(new ChangeListener {
+      override def stateChanged(e: ChangeEvent) {
+        val v = s.getValue()
+        handler(v)
+        l.setText(caption(v))
+      }
+    })
+    panel_box(l, s)(true)
+  }
+
   def button(name: String, action: () => Unit = () => {}) = {
     val b = new JButton
     b.setText(name)
@@ -68,13 +92,13 @@ object GuiBuilder {
     })
     b
   }
-  def panel_box(contents: JComponent*) = {
+  def panel_box(contents: JComponent*)(horizontal: Boolean = false) = {
     val panel = new JPanel
-    panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS))
+    panel.setLayout(new BoxLayout(panel, if (horizontal) BoxLayout.LINE_AXIS else BoxLayout.PAGE_AXIS))
     contents.foreach(panel.add(_))
     panel
   }
-//  def frame(title: String) = {
-//
-//  }
+  //  def frame(title: String) = {
+  //
+  //  }
 }

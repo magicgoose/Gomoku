@@ -73,16 +73,6 @@ package object ai {
     }
   }
 
-  //  def arraySortBy(x: Array[Int], fun: Int => Int, length: Int) {
-  //    val ord = new Ord[Int] {
-  //      def lt(a: Int, b: Int): Boolean = fun(a) < fun(b)
-  //      def lte(a: Int, b: Int): Boolean = fun(a) <= fun(b)
-  //    }
-  //    DualPivotQuicksortGenSingleton.sort(x, length)(ClassTag.Int, ord)
-  //  }
-  //  def arraySortBy(x: Array[Int], fun: Int => Int) {
-  //    arraySortBy(x, fun, x.length)
-  //  }
   @inline final def packLong(x: Int, y: Int) = {
     val xPacked = (x.toLong) << 32
     val yPacked = y & 0xFFFFFFFFL

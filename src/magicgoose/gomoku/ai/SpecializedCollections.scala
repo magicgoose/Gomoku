@@ -94,7 +94,6 @@ final object GrowableArray {
     new GrowableArray(Array.ofDim[T](max_size))
   }
   @inline final def create1[@specialized(Int) T: ClassTag](elem: T) = {
-    //println(elem)
     val r = new GrowableArray(Array(elem))
     r._length = 1
     r
