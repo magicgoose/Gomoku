@@ -31,7 +31,7 @@ class MoveSearcher(val board: GomokuBoard) {
       board.total_size / 2
     }
   }
-  
+
   def findPossibleMoves(): GrowableArray[Int] = {
     import LineInfo._
 
@@ -67,7 +67,7 @@ class MoveSearcher(val board: GomokuBoard) {
             cell += 1
           }
         }
-//        if (li(player, 3, ))
+        //        if (li(player, 3, ))
         val th3 = li(-player, 3, OPEN) + li(-player, 3, BROKEN)
         if (li(player, 3) == 0 && th3 > 0) {
           board.withMove(_)(() => {
@@ -96,7 +96,7 @@ class MoveSearcher(val board: GomokuBoard) {
    * simple score, with hash lookup
    */
   def getSimpleScore() = {
-      board.heur_score()
+    board.heur_score()
   }
 
   /**
@@ -119,24 +119,21 @@ class MoveSearcher(val board: GomokuBoard) {
     if (moves.length == 0) throw new Error("This should not happen! No available moves.")
     moves.sortByInplace(test_move_heur)
     if (board.pieces == 1) moves.trim(2)
-    if (moves.head <= -LineInfo.WIN) moves.head
-    else {
-      var bestmove = 0
-      var bestscore = alpha
-      @inline def loop(i: Int): Int = {
-        if (i < moves.length) {
-          val recursedscore: Int = -search_score(moves(i), depth, -b, -bestscore)
-          if (recursedscore > bestscore) {
-            bestscore = recursedscore
-            bestmove = moves(i)
-          }
-          if (bestscore >= LineInfo.WIN1) {
-            bestmove
-          } else loop(i + 1)
-        } else bestmove
-      }
-      loop(0)
+    var bestmove = 0
+    var bestscore = alpha
+    @inline def loop(i: Int): Int = {
+      if (i < moves.length) {
+        val recursedscore: Int = -search_score(moves(i), depth, -b, -bestscore)
+        if (recursedscore > bestscore) {
+          bestscore = recursedscore
+          bestmove = moves(i)
+        }
+        if (bestscore >= LineInfo.WIN1) {
+          bestmove
+        } else loop(i + 1)
+      } else bestmove
     }
+    loop(0)
   }
 
   /**
@@ -161,8 +158,7 @@ class MoveSearcher(val board: GomokuBoard) {
     val result =
       if (he.hash == board.getHash && he.depth == depth) {
         he.score
-      } else
-      {
+      } else {
         val heur = board.heur_score()
         if (math.abs(heur) >= LineInfo.WIN1 || depth <= 0)
           heur
