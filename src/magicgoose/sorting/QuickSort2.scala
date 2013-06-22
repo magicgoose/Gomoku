@@ -4,31 +4,16 @@ import scala.{ specialized => spec }
 import scala.util.Random
 
 object QuickSort2 {
-  
-//  def main(args: Array[String]): Unit = {
-//    while(true) {
-//      val a1 = readLine().split(" ").map(_.toInt)
-//      val a2 = readLine().split(" ").map(_.toInt)
-//      val maxlen = a1.length max a2.length
-//      import NaturalOrd._
-//      QuickSort2.sortInPlace(a1, a2, 0, maxlen - 1)
-//      println(a1.mkString(" "))
-//      println(a2.mkString(" "))
-//      
-//    }
-//    
-//  }
-  
-  
-  import SimpleSort2.Suck0.swap
-  import Suck1._
+  //Dummy objects are for workaround scala specialization bug
+  import SimpleSort2.Dummy0.swap
+  import Dummy1._
   /**
    * sort 2 arrays based on values in second array
    */
   def sortInPlace[@spec A, @spec B](x: Array[A], y: Array[B], left: Int, right: Int)(implicit ar: Ord[B]) = {
     quicksort(x, y, left, right)
   }
-  private object Suck0 {
+  private object Dummy0 {
     @inline def partition[@spec A, @spec B](x: Array[A], y: Array[B], left: Int, right: Int, pivotIndex: Int)(implicit ar: Ord[B]) = {
       val pivotValue = y(pivotIndex)
       swap(x, y, pivotIndex, right) // Move pivot to end
@@ -45,8 +30,8 @@ object QuickSort2 {
       storeIndex
     }
   }
-  import Suck0._
-  private object Suck1 {
+  import Dummy0._
+  private object Dummy1 {
     @inline def quicksort[@spec A, @spec B](x: Array[A], y: Array[B], left: Int, right: Int)(implicit ar: Ord[B]): Unit = {
       if (left < right) {
         if (right - left < 5) SimpleSort2.sortInPlace(x, y, left, right)
@@ -62,7 +47,7 @@ object QuickSort2 {
 }
 
 object SimpleSort2 {
-  object Suck0 {
+  object Dummy0 {
     @inline def swap[@spec A, @spec B](x: Array[A], y: Array[B], i1: Int, i2: Int) = {
       val tmp = x(i1)
       x(i1) = x(i2)
@@ -72,8 +57,8 @@ object SimpleSort2 {
       y(i2) = tmp2
     }
   }
-  import Suck0._
-  private object Suck1 {
+  import Dummy0._
+  private object Dummy1 {
     def sortInPlace[@spec A, @spec B](x: Array[A], y: Array[B], left: Int, right: Int)(implicit ar: Ord[B]) = {
       var i1 = left
       while (i1 <= right) {
@@ -90,5 +75,5 @@ object SimpleSort2 {
   }
   // sort 2 arrays based on values in second array
   def sortInPlace[@spec A, @spec B](x: Array[A], y: Array[B], left: Int, right: Int)(implicit ar: Ord[B]) =
-    Suck1.sortInPlace(x, y, left, right)
+    Dummy1.sortInPlace(x, y, left, right)
 }

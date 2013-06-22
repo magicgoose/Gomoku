@@ -2,7 +2,6 @@ package magicgoose.gomoku
 
 import java.util.Arrays
 import magicgoose.sorting.Ord
-//import magicgoose.sorting.DualPivotQuicksortGenSingleton
 package object ai {
   import scala.reflect.ClassTag
 

@@ -2,20 +2,6 @@ package magicgoose.gomoku.ai
 
 import scala.annotation.tailrec
 import java.util.Arrays
-/**
- * General interface for an implementation of AI-powered move searching
- */
-//trait MoveSearcher {
-//  /**
-//   * returns all canditates for next move
-//   */
-//  def findPossibleMoves(): Indexed[Int]
-//
-//  /**
-//   * returns best move
-//   */
-//  def findMove(): Int
-//}
 
 class MoveSearcher(val board: GomokuBoard) {
   @volatile var max_depth = 5
@@ -110,10 +96,12 @@ class MoveSearcher(val board: GomokuBoard) {
     res
   }
 
+  import LineInfo._
+  
   /**
    * returns best move
    */
-  def search_move(depth: Int, alpha: Int = -Int.MaxValue, b: Int = Int.MaxValue): Int = {
+  def search_move(depth: Int, alpha: Int = LOSS1, b: Int = WIN1): Int = {
     val moves = findPossibleMoves()
     if (moves.length == 1) return moves.head
     if (moves.length == 0) throw new Error("This should not happen! No available moves.")
@@ -128,7 +116,7 @@ class MoveSearcher(val board: GomokuBoard) {
           bestscore = recursedscore
           bestmove = moves(i)
         }
-        if (bestscore >= LineInfo.WIN1) {
+        if (bestscore >= LineInfo.WIN) {
           bestmove
         } else loop(i + 1)
       } else bestmove
@@ -160,14 +148,14 @@ class MoveSearcher(val board: GomokuBoard) {
         he.score
       } else {
         val heur = board.heur_score()
-        if (math.abs(heur) >= LineInfo.WIN1 || depth <= 0)
+        if (math.abs(heur) >= LineInfo.WIN || depth <= 0)
           heur
         else {
           val next_depth =
             if (threats4(player) > threats4_before) depth
             else depth - 1
 
-          val moves = findPossibleMoves().sortByInplace(test_move_heur) //.trim(4)
+          val moves = findPossibleMoves().sortByInplace(test_move_heur(_)) //.trim(4)
           if (moves.length == 0) {
             board.update_!(coord)(0)
             return Int.MaxValue
